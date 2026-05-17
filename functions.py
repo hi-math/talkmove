@@ -25,11 +25,11 @@ class Utterance:
     """대화 한 줄을 표현하는 데이터 클래스."""
     index: int
     turn: int
-    speaker: str                           # 'T' (교사)
+    speaker: str
     sentence: str
-    true_tag: Optional[int] = None         # 정답 레이블
-    predicted_tag: Optional[int] = None    # 예측 레이블
-    confidence: Optional[float] = None     # 예측 신뢰도
+    true_tag: Optional[int] = None
+    predicted_tag: Optional[int] = None
+    confidence: Optional[float] = None
 
 
 # ──────────────────────────────────────────────
@@ -37,8 +37,6 @@ class Utterance:
 # ──────────────────────────────────────────────
 
 class TalkMoveLabels:
-    """Teacher Talk Move 레이블 정보."""
-
     TEACHER = {
         0: "NONE",
         1: "KPTG",
@@ -68,53 +66,100 @@ class TalkMoveLabels:
 class PromptBuilder:
     """LLM 분류용 시스템/유저 프롬프트를 생성하는 클래스."""
 
-    SYSTEM_PROMPT = """You are an expert annotator for mathematics classroom discourse analysis.
-You classify teacher utterances using the Talk Move framework (Accountable Talk theory).
+    SYSTEM_PROMPT = """You are an expert annotator for mathematics classroom discourse.
+Classify the teacher utterance into exactly one of the 7 Talk Move labels below.
 
-## Label Definitions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LABEL DEFINITIONS, DESCRIPTIONS, AND EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-0 NONE — Does NOT fit any of labels 1-6.
-   Apply NONE liberally. Most utterances are NONE.
+1  KPTG  Keeping Everyone Together
+   Prompting students to be active listeners and orienting students to each other.
+   The teacher directs the whole class to pay attention to a specific student's idea.
+   ✓ "What did Eliza just say her equation was?"
+   ✓ "Can everyone look at what Marcus put on the board?"
+   ✓ "Who can tell me what John just said?"
+   ✓ "Did everyone hear that? Say it again for the class."
+   — Also applies when teacher asks the class to check or share with a partner:
+   ✓ "Please go check your homework with a partner."
+
+2  GSTUR  Getting Students to Relate to Another's Ideas
+   Prompting students to react to what a classmate said.
+   The teacher explicitly asks one student to engage with another student's idea.
+   ✓ "Do you agree with Juan that the answer is 7/10?"
+   ✓ "How does that connect to what Maria said?"
+   ✓ "How do you know he is right?"
+
+3  RESTAT  Restating
+   Repeating all or part of what a student said word for word.
+   The teacher echoes a student's exact words back to the class.
+   ✓ "Add two here." (repeating student's words)
+   ✓ "So she said the answer is 48."
+   ✓ "You're saying X is the number of cars."
+
+4  REVOIC  Revoicing
+   Repeating what a student said but adding on or changing the wording.
+   The teacher paraphrases or reframes a student's idea with elaboration.
+   ✓ "Julia told us she would add two here." (adds attribution + slight elaboration)
+   ✓ "So you're saying the zeros come from multiplying by tens?"
+   ✓ "You're comparing the two methods." (reframes student's action)
+
+5  PRSACC  Pressing for Accuracy
+   Prompting students to make a mathematical contribution or use mathematical language.
+   Focuses on correctness, precision, or proper math vocabulary.
+   ✓ "Can you give an example of an ordered pair?"
+   ✓ "Is that the right term?"
+   ✓ "Can you say that using math vocabulary?"
+   ✓ "Are you sure that's correct?"
+   ✓ "Start again." (prompting student to redo for correctness)
+   ✓ "You said what?" (signaling inaccuracy, prompting correction)
+
+6  PRSREA  Pressing for Reasoning
+   Prompting students to explain, provide evidence, share their thinking behind
+   a decision, or connect ideas or representations.
+   Focuses on WHY or HOW, not just whether the answer is right.
+   ✓ "Why could I argue that the slope should be increasing?"
+   ✓ "Why are you just automatically changing your answer?"
+   ✓ "Talk about what steps you took to get there."
+   ✓ "How did you get that?"
+   ✓ "Can you explain your thinking?"
+
+0  NONE  None of the above
+   Use NONE only when the utterance clearly does not fit labels 1–6.
    NONE includes:
-   - Explaining content, giving instructions, managing time/logistics
-   - Transitions ("Okay", "Alright", "Let's move on")
-   - Affirmations ("Yes", "Good", "Right")
-   - Restating what the teacher themselves said (not a student)
-   - Describing tasks or learning goals to the whole class
-   - Any utterance not directly eliciting student-to-student discourse
+   - Content explanation or instruction NOT tied to a specific student's idea
+   - Pure logistics / time management ("You have one more minute")
+   - Filler / acknowledgment only ("Okay", "Alright", "I'm sorry")
+   - Task setup describing what students will do ("There's a partitioned rectangle problem...")
+   - Learning objective statements ("Your learning intention is you can multiply...")
+   ✗ Do NOT use NONE for short or vague utterances if they clearly signal
+     a press for accuracy or reasoning.
 
-1 KPTG (Keeping Everyone Together) — Explicitly directs ALL students to attend to ONE shared idea or answer.
-   Key signal: teacher focuses the whole class on a *specific idea just raised*.
-   Examples: "Can everyone look at what Maria said?", "Let's all think about that."
-   NOT KPTG: general task directions like "Get started", "Please check homework", "Do problem one" → NONE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DECISION GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Step 1. Does the teacher orient students to LISTEN TO / REACT TO a classmate?
+        → Yes, listen/attend     → KPTG
+        → Yes, react/engage      → GSTUR
 
-2 GSTUR (Getting Students to Relate) — Asks a SPECIFIC student to engage with ANOTHER student's idea.
-   Key signal: targets one student, references another student's contribution.
-   Examples: "John, do you agree with what Sarah said?", "How does that connect to what he said?"
+Step 2. Does the teacher repeat a student's words?
+        → Exact repeat           → RESTAT
+        → Paraphrase/elaborate   → REVOIC
 
-3 RESTAT (Restating) — Teacher repeats or paraphrases a STUDENT's words for the class.
-   Key signal: teacher is voicing back what a student said, attributing it to that student.
-   Examples: "So what you're saying is...", "She said the answer is 48000."
+Step 3. Does the teacher press a student?
+        → For correctness/vocab  → PRSACC
+        → For explanation/why    → PRSREA
 
-4 REVOIC (Revoicing) — Teacher re-expresses a student's idea with a slight elaboration or interpretive shift.
-   Differs from RESTAT: adds a new framing or interpretation beyond mere repetition.
-   Examples: "So you're saying the zeros come from multiplying tens?"
+Step 4. None of the above       → NONE
 
-5 PRSACC (Press for Accuracy) — Asks student to CHECK, CORRECT, or VERIFY an answer.
-   Key signal: focuses on WHETHER the answer is right/wrong.
-   Examples: "Are you sure?", "Is that correct?", "Check that again."
-   NOT PRSACC: asking WHY or HOW → that is PRSREA
-
-6 PRSREA (Press for Reasoning) — Asks student to EXPLAIN their thinking, steps, or reasoning.
-   Key signal: focuses on HOW or WHY, not just correctness.
-   Examples: "Why do you think that?", "How did you get that?", "Talk me through your steps."
-   "Talk about what steps you took" → PRSREA (asking for steps/process = reasoning)
-
-## Decision Rules
-- When in doubt between a label and NONE → choose NONE.
-- KPTG requires directing the whole class to a specific student idea — task instructions alone are NONE.
-- PRSACC vs PRSREA: accuracy = "is it right?", reasoning = "why/how?".
-- Short phrases ("Start again", "You said what") without clear discourse intent → NONE.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Short utterances CAN be PRSACC or PRSREA if the intent is clear from context.
+- "Start again", "You said what?" → PRSACC (pressing for corrected/accurate response)
+- "Talk about your steps", "Why did you do that?" → PRSREA
+- Describing task instructions to the whole class (not referencing a student's idea) → NONE
+- KPTG does NOT require a question; a directive like "Go check with a partner" qualifies.
 
 Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
 
@@ -140,7 +185,7 @@ Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
             f"{context_block}"
             f"[Target Utterance]\n"
             f"  [T]: {utterance.sentence or '(no text)'}\n\n"
-            f"Classify the target utterance. Tag 0 (NONE) if unsure."
+            f"Classify using the decision guide. Output JSON only."
         )
 
 
@@ -149,9 +194,8 @@ Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
 # ──────────────────────────────────────────────
 
 class _BaseBackend:
-    """LLM 백엔드 공통 인터페이스."""
-    RETRY_LIMIT = 3
-    RETRY_DELAY = 2
+    RETRY_LIMIT = 5
+    RETRY_DELAY = 5
 
     def call(self, system: str, user: str) -> str:
         raise NotImplementedError
@@ -244,7 +288,6 @@ class LLMClassifier:
         utterance: Utterance,
         context: list[Utterance],
     ) -> tuple[int, float]:
-        """발화를 분류하고 (predicted_tag, confidence) 반환. 실패 시 (0, 0.0)."""
         system = self.prompt_builder.build_system_prompt()
         user   = self.prompt_builder.build_user_prompt(utterance, context)
         tag, confidence = self.backend.safe_call(system, user)
@@ -278,7 +321,6 @@ class DataLoader:
     def load(path: str, max_rows: Optional[int] = None) -> list[Utterance]:
         df = DataLoader._read_file(path, max_rows)
 
-        # 교사 발화만 필터링
         if "Speaker" in df.columns:
             df = df[df["Speaker"] == "T"].reset_index(drop=True)
 
@@ -340,11 +382,27 @@ class Evaluator:
             print(f"{u.index:>5} {u.turn:>5} {pred_name:>8} {true_name:>8}  {mark} {(u.sentence or '')[:50]}")
 
     @staticmethod
+    def print_distribution(utterances: list[Utterance]) -> None:
+        """True vs Predicted 레이블 분포 출력."""
+        from collections import Counter
+        true_counts = Counter(u.true_tag for u in utterances if u.true_tag is not None)
+        pred_counts = Counter(u.predicted_tag for u in utterances if u.predicted_tag is not None)
+
+        print(f"\n{'Tag':<5} {'Label':<8} {'True':>6} {'Pred':>6}  {'Diff':>6}")
+        print("-" * 38)
+        for tag in range(7):
+            name = TalkMoveLabels.tag_to_name(tag)
+            t = true_counts.get(tag, 0)
+            p = pred_counts.get(tag, 0)
+            diff = p - t
+            sign = "+" if diff > 0 else ""
+            print(f"  {tag}    {name:<8} {t:>6} {p:>6}  {sign}{diff:>5}")
+
+    @staticmethod
     def plot_confusion_matrix(utterances: list[Utterance]) -> None:
         """혼동행렬을 matplotlib으로 시각화."""
         try:
             import matplotlib.pyplot as plt
-            import matplotlib
             import numpy as np
         except ImportError:
             print("matplotlib / numpy가 필요합니다: pip install matplotlib numpy")
@@ -364,7 +422,6 @@ class Evaluator:
             p_idx = label_to_idx.get(pred_name, 0)
             matrix[t_idx][p_idx] += 1
 
-        # 사용된 레이블만 표시 (행·열 합계 > 0)
         used = [i for i in range(n) if matrix[i].sum() > 0 or matrix[:, i].sum() > 0]
         matrix = matrix[np.ix_(used, used)]
         tick_labels = [labels[i] for i in used]
@@ -382,8 +439,7 @@ class Evaluator:
         ax.set_xlabel("Predicted", fontsize=12)
         ax.set_ylabel("True", fontsize=12)
         ax.set_title(
-            f"Talk Move Confusion Matrix\n"
-            f"n={len(valid)},  Accuracy={acc:.1%}",
+            f"Talk Move Confusion Matrix\nn={len(valid)},  Accuracy={acc:.1%}",
             fontsize=13, fontweight="bold"
         )
 
@@ -457,13 +513,14 @@ class ClassificationPipeline:
 
             if verbose:
                 pred_name = TalkMoveLabels.tag_to_name(tag)
-                mark = "✓" if tag == utt.true_tag else "✗"
+                mark = "✓" if tag == utt.true_tag else ("✗" if utt.true_tag is not None else " ")
                 print(
                     f"[{i+1:>4}/{len(utterances)}] {pred_name:>8}({conf:.2f}) "
                     f"{mark}  {(utt.sentence or '')[:45]}"
                 )
 
         if verbose:
+            self.evaluator.print_distribution(utterances)
             self.evaluator.print_report(utterances)
 
         return utterances

@@ -14,6 +14,7 @@ import time
 import pandas as pd
 from dataclasses import dataclass
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 # ──────────────────────────────────────────────
@@ -195,7 +196,7 @@ Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
 
 class _BaseBackend:
     RETRY_LIMIT = 5
-    RETRY_DELAY = 5
+    RETRY_DELAY = 3   # 병렬 호출 시 503 대비 적당한 대기
 
     def call(self, system: str, user: str) -> str:
         raise NotImplementedError
@@ -209,6 +210,9 @@ class _BaseBackend:
             except (json.JSONDecodeError, KeyError, ValueError):
                 if attempt < self.RETRY_LIMIT - 1:
                     time.sleep(self.RETRY_DELAY)
+            except Exception:          # 503 등 네트워크 에러
+                if attempt < self.RETRY_LIMIT - 1:
+                    time.sleep(self.RETRY_DELAY * (attempt + 1))  # 지수 대기
         return 0, 0.0
 
 
@@ -491,33 +495,51 @@ class ClassificationPipeline:
         model: Optional[str] = None,
         max_rows: Optional[int] = None,
         context_window: int = 3,
+        workers: int = 5,
     ):
         self.data_path = data_path
         self.max_rows = max_rows
         self.context_window = context_window
+        self.workers = workers
         self.classifier = LLMClassifier(provider=provider, api_key=api_key, model=model)
         self.evaluator = Evaluator()
+
+    def _classify_one(self, args):
+        i, utt, context = args
+        tag, conf = self.classifier.classify(utt, context)
+        return i, tag, conf
 
     def run(self, verbose: bool = True) -> list[Utterance]:
         if verbose:
             print(f"📂 Loading: {self.data_path}")
         utterances = DataLoader.load(self.data_path, self.max_rows)
+        n = len(utterances)
         if verbose:
-            print(f"✅ {len(utterances)} teacher utterances loaded.\n")
+            print(f"✅ {n} teacher utterances loaded.")
+            print(f"🚀 병렬 처리 시작 (workers={self.workers})\n")
 
-        for i, utt in enumerate(utterances):
-            context = utterances[max(0, i - self.context_window): i]
-            tag, conf = self.classifier.classify(utt, context)
-            utt.predicted_tag = tag
-            utt.confidence = conf
+        tasks = [
+            (i, utt, utterances[max(0, i - self.context_window): i])
+            for i, utt in enumerate(utterances)
+        ]
 
-            if verbose:
-                pred_name = TalkMoveLabels.tag_to_name(tag)
-                mark = "✓" if tag == utt.true_tag else ("✗" if utt.true_tag is not None else " ")
-                print(
-                    f"[{i+1:>4}/{len(utterances)}] {pred_name:>8}({conf:.2f}) "
-                    f"{mark}  {(utt.sentence or '')[:45]}"
-                )
+        completed = 0
+        with ThreadPoolExecutor(max_workers=self.workers) as executor:
+            futures = {executor.submit(self._classify_one, t): t[0] for t in tasks}
+            for future in as_completed(futures):
+                i, tag, conf = future.result()
+                utterances[i].predicted_tag = tag
+                utterances[i].confidence = conf
+                completed += 1
+
+                if verbose:
+                    utt = utterances[i]
+                    pred_name = TalkMoveLabels.tag_to_name(tag)
+                    mark = "✓" if tag == utt.true_tag else ("✗" if utt.true_tag is not None else " ")
+                    print(
+                        f"[{completed:>4}/{n}] {pred_name:>8}({conf:.2f}) "
+                        f"{mark}  {(utt.sentence or "")[:45]}"
+                    )
 
         if verbose:
             self.evaluator.print_distribution(utterances)

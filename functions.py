@@ -222,8 +222,7 @@ Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
             f"{context_block}"
             f"[Target Utterance]\n"
             f"  [T]: {utterance.sentence or '(no text)'}\n\n"
-            "Use the decision guide. Prefer labels 1-6 over NONE when uncertain.\n"
-            "Output JSON only."
+            'Respond with ONLY valid JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}'
         )
 
 
@@ -239,15 +238,30 @@ class _BaseBackend:
         raise NotImplementedError
 
     def safe_call(self, system: str, user: str) -> tuple[int, float]:
+        last_text = ""
         for attempt in range(self.RETRY_LIMIT):
             try:
-                text = self.call(system, user)
-                result = json.loads(text.strip())
+                last_text = self.call(system, user)
+                # JSON 추출 (마크다운/앞뒤 텍스트 감싸진 경우 대응)
+                import re
+                text = last_text.strip()
+                try:
+                    result = json.loads(text)
+                except json.JSONDecodeError:
+                    m = re.search(r"\{[^{}]*\}", text, re.DOTALL)
+                    if not m:
+                        raise
+                    result = json.loads(m.group(0))
                 return int(result["tag"]), float(result.get("confidence", 1.0))
-            except (json.JSONDecodeError, KeyError, ValueError):
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                if attempt == 0:
+                    # 첫 실패 시 응답 내용 출력 (디버깅용)
+                    print(f"  ⚠️  JSON 파싱 실패 (attempt {attempt+1}): {repr(last_text[:80])}")
                 if attempt < self.RETRY_LIMIT - 1:
                     time.sleep(self.RETRY_DELAY)
-            except Exception:
+            except Exception as e:
+                if attempt == 0:
+                    print(f"  ⚠️  API 오류 (attempt {attempt+1}): {type(e).__name__}: {e}")
                 if attempt < self.RETRY_LIMIT - 1:
                     time.sleep(self.RETRY_DELAY * (attempt + 1))
         return 0, 0.0

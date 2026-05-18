@@ -480,6 +480,7 @@ class Evaluator:
 
         print(f"\n{'Label':<8} {'Total':>6} {'Recall':>8} {'Precision':>10} {'F1':>7}")
         print("-" * 45)
+        f1_scores = []
         for i, label in enumerate(labels):
             total = matrix[i].sum()
             correct = matrix[i][i]
@@ -487,7 +488,16 @@ class Evaluator:
             recall = correct / total if total > 0 else 0
             prec   = correct / pred_total if pred_total > 0 else 0
             f1     = 2 * prec * recall / (prec + recall) if (prec + recall) > 0 else 0
+            f1_scores.append(f1)
             print(f"{label:<8} {total:>6} {recall:>7.1%} {prec:>9.1%} {f1:>7.3f}")
+
+        acc = Evaluator.accuracy(utterances)
+        macro_f1 = np.mean(f1_scores)
+        macro_f1_no_none = np.mean(f1_scores[1:])
+        print("-" * 45)
+        print(f"{'Accuracy':<20} {acc:.1%}")
+        print(f"{'Macro F1':<20} {macro_f1:.3f}")
+        print(f"{'Macro F1 (NONE 제외)':<20} {macro_f1_no_none:.3f}")
 
     @staticmethod
     def plot_confusion_matrix(utterances: list[Utterance]) -> None:

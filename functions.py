@@ -339,24 +339,38 @@ class DataLoader:
     """xlsx / csv 파일에서 교사 발화만 읽어 Utterance 리스트로 변환."""
 
     @staticmethod
-    def _read_file(path: str, max_rows: Optional[int]) -> pd.DataFrame:
+    def _read_file(path: str) -> pd.DataFrame:
+        """확장자에 따라 전체 파일을 읽기 (샘플링은 load()에서 처리)."""
         ext = path.rsplit(".", 1)[-1].lower()
         if ext == "csv":
-            return pd.read_csv(path, nrows=max_rows)
+            return pd.read_csv(path)
         elif ext in ("xlsx", "xls", "xlsm"):
-            return pd.read_excel(path, nrows=max_rows)
+            return pd.read_excel(path)
         else:
             try:
-                return pd.read_csv(path, nrows=max_rows)
+                return pd.read_csv(path)
             except Exception:
-                return pd.read_excel(path, nrows=max_rows)
+                return pd.read_excel(path)
 
     @staticmethod
-    def load(path: str, max_rows: Optional[int] = None) -> list[Utterance]:
-        df = DataLoader._read_file(path, max_rows)
+    def load(
+        path: str,
+        sample_n: Optional[int] = None,
+        random_state: int = 42,
+    ) -> list[Utterance]:
+        """
+        교사 발화만 로드. sample_n이 주어지면 전체에서 랜덤 샘플링.
+        (앞에서 자르는 max_rows 방식이 아니므로 데이터 리크 없음)
+        """
+        df = DataLoader._read_file(path)
 
         if "Speaker" in df.columns:
             df = df[df["Speaker"] == "T"].reset_index(drop=True)
+
+        # 랜덤 샘플링 (sample_n이 전체보다 크면 전체 사용)
+        if sample_n is not None and sample_n < len(df):
+            df = df.sample(n=sample_n, random_state=random_state).reset_index(drop=True)
+            print(f"🎲 랜덤 샘플링: {sample_n}개 / 전체 교사 발화에서 추출 (seed={random_state})")
 
         utterances = []
         for i, row in df.iterrows():
@@ -530,12 +544,14 @@ class ClassificationPipeline:
         provider: str = "gemini",
         api_key: Optional[str] = None,
         model: Optional[str] = None,
-        max_rows: Optional[int] = None,
+        sample_n: Optional[int] = None,
+        random_state: int = 42,
         context_window: int = 3,
         workers: int = 5,
     ):
         self.data_path = data_path
-        self.max_rows = max_rows
+        self.sample_n = sample_n
+        self.random_state = random_state
         self.context_window = context_window
         self.workers = workers
         self.classifier = LLMClassifier(provider=provider, api_key=api_key, model=model)
@@ -549,7 +565,7 @@ class ClassificationPipeline:
     def run(self, verbose: bool = True) -> list[Utterance]:
         if verbose:
             print(f"📂 Loading: {self.data_path}")
-        utterances = DataLoader.load(self.data_path, self.max_rows)
+        utterances = DataLoader.load(self.data_path, self.sample_n, self.random_state)
         n = len(utterances)
         if verbose:
             print(f"✅ {n} teacher utterances loaded.")

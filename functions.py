@@ -68,156 +68,134 @@ class PromptBuilder:
 Classify the teacher utterance into exactly one of 7 Talk Move labels.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IMPORTANT: NONE is a last resort. Most utterances belong to labels 1–6.
-When uncertain between NONE and another label, choose the other label.
+KEY PRINCIPLE: The 6 active labels (1–6) are NARROWLY defined.
+NONE is the default when no active label clearly fits.
+Do not force-fit an utterance into labels 1–6.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ═══════════════════════════════════════════════
 LABEL 1 — KPTG (Keeping Everyone Together)
 ═══════════════════════════════════════════════
-Directing student attention, calling on a specific student by name,
-checking shared understanding, managing class participation, or keeping
-the whole class engaged together.
+The teacher actively orients students to attend to a shared idea,
+calls on a specific student to speak, checks whole-class understanding,
+or polls the class on a shared task.
 
-KPTG sub-types (all are KPTG):
-  A. Calling a student by name alone or with a minimal prompt
-     • "Clayton"  • "Chandler"  • "Joel"  • "David"  • "Josh"
-     • "Carson you want to bring your book up here"
-  B. Confirmation/tag questions directed at the whole class
-     • "A twodigit times a onedigit right"
-     • "17 isnt a multiple of 10 is it"
-     • "2400 is not very close to 240 is it"
-     • "It helps to talk yourself through it doesnt it"
-     • "So your answer will change a little bit wont it"
-     • "Did you forget to add 2 zeros"
-     • "Do you revise your thinking"
-  C. Soliciting class participation / polling
-     • "All right who did pink problems"
-     • "Who got all the way to doing it partial product way"
-     • "These hands went Matt feeling confident"
-     • "Every single person except for You missed that"
-     • "Thumbs up when you have the answer"
-  D. Short directives / attention calls
-     • "Go"  • "Please go check your homework with a partner"
-  E. Referencing a student's idea to re-engage the class
-     • "Youre comparing"  • "You said what"
-     • "It was following a pattern and then it messed you up"
-     • "So you did it right underneath the way that they know"
+✓ KPTG:
+  • Calling a student by name (alone or with minimal prompt)
+    "Clayton"  "Joel"  "Carson you want to bring your book up here"
+  • Tag questions checking shared understanding
+    "17 isnt a multiple of 10 is it"  "Do you revise your thinking"
+    "Did you forget to add 2 zeros"
+  • Whole-class participation solicitation
+    "All right who did pink problems"  "Thumbs up when you have the answer"
+    "These hands went Matt feeling confident"
+  • Short whole-class directives for engagement
+    "Go"  "Please go check your homework with a partner"
+  • Referencing a student's words to re-focus the class
+    "Youre comparing"  "You said what"
 
-NOT KPTG → NONE: pure logistics not aimed at discourse engagement
-  ✗ "You guys should go ask someone else" → NONE (redirecting, not engaging)
-  ✗ "I want you to take your whiteboard and swap with your partner" → NONE (task setup)
+✗ NOT KPTG → NONE:
+  "You guys should go ask someone else"  (redirecting to another person)
+  "I want you to take your whiteboard and swap"  (task logistics)
+  "Get started on mental math"  (task transition, no discourse focus)
 
 ═══════════════════════════════════════════════
 LABEL 2 — GSTUR (Getting Students to Relate)
 ═══════════════════════════════════════════════
-Asking a student to engage with, compare to, or evaluate a classmate's idea.
-Key signal: reference to what another student said/did + request to react.
+Teacher explicitly asks one student to engage with ANOTHER student's idea.
+Key signal: reference to a specific classmate's idea + reaction request.
 
-Real examples:
-  • "How do you know he is right?"
-  • "Any disagreements with how Carson set up her partition rectangle?"
-  • "Anyone do it differently?"
-  • "Anyone else have a different response?"
-  • "What did you do differently?"
-  • "Any disagreements on how Matt or Dakota solved the problem?"
-  • "Dakota do you have a different answer or did you just do it the same way?"
-  • "What did you notice that Faith did while she was revising?"
-  • "But as she was working it did she actually do it right?"
+✓ GSTUR:
+  "How do you know he is right?"
+  "Any disagreements with how Carson set up her partition rectangle?"
+  "Anyone do it differently?"  "Anyone else have a different response?"
+  "Dakota do you have a different answer?"
+  "What did you notice that Faith did while she was revising?"
 
-NOT GSTUR → KPTG: "Jesse" alone (single student name) = calling on = KPTG
+✗ NOT GSTUR → KPTG: single student name alone ("Jesse") = calling on
 
 ═══════════════════════════════════════════════
 LABEL 3 — RESTAT (Restating)
 ═══════════════════════════════════════════════
-Teacher echoes a student's exact words back (even one word/number counts).
-Key signal: teacher is repeating what a student just said.
+Teacher repeats a student's exact words back. Even one word counts.
+Must be echoing what a student said, not the teacher's own words.
 
-Real examples:
-  • "Seven"  • "Two zeros"  • "Multiples"  • "Times 20 thank you"
-  • "4 extra zeros to your basic fact"
-  • "Were doing a twodigit number times a twodigit number"
+✓ RESTAT:
+  "Seven"  "Two zeros"  "Multiples"  "Times 20 thank you"
+  "4 extra zeros to your basic fact"
 
-NOT RESTAT → NONE:
-  ✗ "Its multiplication" (teacher stating, not echoing a student) → NONE
+✗ NOT RESTAT → NONE:
+  "Its multiplication"  (teacher's own statement, not echoing a student)
 
 ═══════════════════════════════════════════════
 LABEL 4 — REVOIC (Revoicing)
 ═══════════════════════════════════════════════
-Teacher paraphrases or elaborates a student's idea with a slight shift.
-Key signal: teacher re-expresses student thinking with added framing.
+Teacher re-expresses a student's idea with added framing or elaboration.
+Must be reformulating something a student actually said.
 
-Real examples:
-  • "Youre adding"  • "Also 3"  • "You counted by 5"
-  • "300 sir youre correct"  • "Just 28 because there are no extra zeros"
-  • "When you started working it the second time you realized..."
+✓ REVOIC:
+  "Youre adding"  "You counted by 5"  "Also 3"
+  "300 sir youre correct"  "Just 28 because there are no extra zeros"
 
-NOT REVOIC → NONE (teacher narrating their own observation, not a student's idea):
-  ✗ "I heard you say 56 and thinking through" → NONE (teacher thinking aloud)
-  ✗ "I heard that 24000" → NONE (teacher noting what they overheard, no elaboration)
+✗ NOT REVOIC → NONE (teacher's own observation/narration):
+  "I heard you say 56 and thinking through"
+  "I heard that 24000"
 
 ═══════════════════════════════════════════════
 LABEL 5 — PRSACC (Pressing for Accuracy)
 ═══════════════════════════════════════════════
-Eliciting a math answer, fact, term, calculation, or step from a student.
-This is the broadest active label. Applies whenever teacher asks for any
-mathematical content — even a single expression or formula.
+Teacher elicits a specific math answer, term, calculation, or step.
+A bare math expression thrown out as a prompt counts.
 
-Real examples (NOTE: bare math expressions count as PRSACC):
-  • "4 times 50"  • "30 times 7"  • "70 times 8"  • "20 times 40"
-  • "Basic facts with what"  • "Talk about what steps you took to get there"
-  • "Anyone feel pretty confident about how they did it"
-  • "I hear 81000 Whos correct"
-  • "How many extra zeros are in the problem"
-  • "Jesse whats different about this problem"
-  • "Explain please"
+✓ PRSACC:
+  "4 times 50"  "30 times 7"  "20 times 40"  (bare expressions)
+  "Basic facts with what"  "Explain please"
+  "Talk about what steps you took to get there"
+  "How many extra zeros are in the problem"
+  "I hear 81000 Whos correct"
 
-NOT PRSACC → NONE:
-  ✗ "Basic fact in there" (teacher statement, not a question) → NONE
-  ✗ "I have no idea what you just said" (teacher reaction) → NONE
+✗ NOT PRSACC → NONE:
+  "Basic fact in there"  (statement, not eliciting)
+  "I have no idea what you just said"  (teacher reaction)
 
 ═══════════════════════════════════════════════
 LABEL 6 — PRSREA (Pressing for Reasoning)
 ═══════════════════════════════════════════════
-Asking a student to explain WHY or justify their thinking.
-Key signal: contains "why" or equivalent reasoning request.
-Even single-word "Why" counts as PRSREA.
+Teacher asks WHY or requests justification/explanation of thinking.
+"Why" alone counts as PRSREA.
 
-Real examples:
-  • "Why"  • "Why Clayton"  • "Why not 80"
-  • "Why 48000 and not 4800"  • "Why Matt why not"
-  • "Why is it not 81000"
-  • "Why are you just automatically changing your answer"
+✓ PRSREA:
+  "Why"  "Why Clayton"  "Why not 80"  "Why 48000 and not 4800"
+  "Why are you just automatically changing your answer"
 
 ═══════════════════════════════════════════════
-LABEL 0 — NONE (None of the above)
+LABEL 0 — NONE
 ═══════════════════════════════════════════════
-Pure content delivery, logistics, transitions, or filler with no
-interactive discourse function aimed at engaging students.
+Content delivery, logistics, transitions, filler, teacher's own narration.
+Use when no active label clearly applies.
 
-Real examples of genuine NONE:
-  • "Get started on mental math"  • "You have about another minute and a half"
-  • "Making sure that you can see how your answers should be the same"
-  • "Youre mental math youre just doing quick extended facts"
-  • "I want you to take your whiteboard and swap with your partner" (task setup)
-  • "You guys should go ask someone else" (redirect, not engagement)
-  • "I heard you say 56 and thinking through" (teacher thinking aloud)
-  • "I heard that 24000" (narrating observation without elaborating)
-  • "Basic fact in there" (statement, not a question or prompt)
-  • "Its multiplication" (teacher labeling, not echoing a student)
+✓ NONE:
+  "Get started on mental math"  "You have about another minute and a half"
+  "Youre mental math youre just doing quick extended facts"
+  "I want you to take your whiteboard and swap with your partner"
+  "You guys should go ask someone else"
+  "I heard you say 56 and thinking through"
+  "I heard that 24000"
+  "Basic fact in there"  "Its multiplication"
+  "Yes"  "No"  "Okay"  "All right"  (simple acknowledgment with no echo)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DECISION GUIDE (in order)
+DECISION GUIDE (check in order, stop at first match)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Contains "why" or justification request?                    → PRSREA
-2. Asks for math content, answer, formula, or steps?           → PRSACC
-   (bare math expression like "4 times 50" = PRSACC)
-3. References a classmate's idea and asks student to react?   → GSTUR
-4. Teacher echoing student's exact words?                     → RESTAT
-5. Teacher reframing/elaborating student's idea?              → REVOIC
-6. Student name alone / tag question / participation poll
-   / attention direction / short directive?                    → KPTG
-7. Pure logistics / content delivery / teacher statement?      → NONE
+1. Contains "why" or asks for justification?           → PRSREA
+2. Elicits math content / answer / steps?
+   (bare math expression counts)                       → PRSACC
+3. References classmate's idea + asks for reaction?   → GSTUR
+4. Echoes student's exact words?                      → RESTAT
+5. Re-expresses student's idea with elaboration?      → REVOIC
+6. Calls on student by name / checks whole-class
+   understanding / polls participation?                → KPTG
+7. Everything else                                     → NONE
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
@@ -380,18 +358,28 @@ class DataLoader:
         random_state: int = 42,
     ) -> list[Utterance]:
         """
-        교사 발화만 로드. sample_n이 주어지면 전체에서 랜덤 샘플링.
-        (앞에서 자르는 max_rows 방식이 아니므로 데이터 리크 없음)
+        교사 발화만 로드.
+
+        Parameters
+        ----------
+        sample_n    : 연속으로 추출할 발화 수.
+                      시작 인덱스를 random_state 시드로 랜덤 결정 후
+                      원래 순서대로 sample_n개를 추출 → 컨텍스트 유지.
+                      None이면 전체 사용.
+        random_state: 시작 인덱스 결정용 시드.
         """
         df = DataLoader._read_file(path)
 
         if "Speaker" in df.columns:
             df = df[df["Speaker"] == "T"].reset_index(drop=True)
 
-        # 랜덤 샘플링 (sample_n이 전체보다 크면 전체 사용)
         if sample_n is not None and sample_n < len(df):
-            df = df.sample(n=sample_n, random_state=random_state).reset_index(drop=True)
-            print(f"🎲 랜덤 샘플링: {sample_n}개 / 전체 교사 발화에서 추출 (seed={random_state})")
+            import random
+            rng = random.Random(random_state)
+            max_start = len(df) - sample_n
+            start = rng.randint(0, max_start)
+            df = df.iloc[start : start + sample_n].reset_index(drop=True)
+            print(f"🎲 연속 샘플링: {start}번째부터 {sample_n}개 (seed={random_state})")
 
         utterances = []
         for i, row in df.iterrows():

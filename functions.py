@@ -1,9 +1,8 @@
 """
 functions.py
 ============
-Talk Move Classifier에서 사용하는 모든 클래스 정의.
-논문: Cao et al. (2025) "Enhancing Talk Moves Analysis in Mathematics
-      Tutoring through Classroom Teaching Discourse", COLING 2025
+Talk Move Classifier — Teacher Only
+논문: Cao et al. (2025) COLING
 
 Teacher Talk Moves (Tag 0~6):
   0: NONE  1: KPTG  2: GSTUR  3: RESTAT  4: REVOIC  5: PRSACC  6: PRSREA
@@ -23,7 +22,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 @dataclass
 class Utterance:
-    """대화 한 줄을 표현하는 데이터 클래스."""
     index: int
     turn: int
     speaker: str
@@ -65,103 +63,142 @@ class TalkMoveLabels:
 # ──────────────────────────────────────────────
 
 class PromptBuilder:
-    """LLM 분류용 시스템/유저 프롬프트를 생성하는 클래스."""
 
     SYSTEM_PROMPT = """You are an expert annotator for mathematics classroom discourse.
-Classify the teacher utterance into exactly one of the 7 Talk Move labels below.
+Classify the teacher utterance into exactly one of 7 Talk Move labels.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LABEL DEFINITIONS, DESCRIPTIONS, AND EXAMPLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT: NONE is a last resort. Most utterances belong to labels 1–6.
+When uncertain between NONE and another label, choose the other label.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1  KPTG  Keeping Everyone Together
-   Prompting students to be active listeners and orienting students to each other.
-   The teacher directs the whole class to pay attention to a specific student's idea.
-   ✓ "What did Eliza just say her equation was?"
-   ✓ "Can everyone look at what Marcus put on the board?"
-   ✓ "Who can tell me what John just said?"
-   ✓ "Did everyone hear that? Say it again for the class."
-   — Also applies when teacher asks the class to check or share with a partner:
-   ✓ "Please go check your homework with a partner."
+═══════════════════════════════════════════════
+LABEL 1 — KPTG (Keeping Everyone Together)
+═══════════════════════════════════════════════
+Prompting students to be active listeners, orienting students to each other,
+or directing the class to attend to a shared idea or activity.
+Applies broadly: directing attention, calling on students, asking the class
+to repeat/read/say something, checking understanding, or managing participation.
 
-2  GSTUR  Getting Students to Relate to Another's Ideas
-   Prompting students to react to what a classmate said.
-   The teacher explicitly asks one student to engage with another student's idea.
-   ✓ "Do you agree with Juan that the answer is 7/10?"
-   ✓ "How does that connect to what Maria said?"
-   ✓ "How do you know he is right?"
+Real examples from this dataset:
+  • "Go"
+  • "Class"
+  • "Do you see it?"
+  • "Makes sense?"
+  • "All right so any other questions?"
+  • "How are you feeling?"
+  • "Please go check your homework with a partner."
+  • "Ben will you read that to us?"
+  • "Everybody say rotation."
+  • "Hey so you think its gonna get wider?"
+  • "Youre comparing."
+  • "You said what?"
 
-3  RESTAT  Restating
-   Repeating all or part of what a student said word for word.
-   The teacher echoes a student's exact words back to the class.
-   ✓ "Add two here." (repeating student's words)
-   ✓ "So she said the answer is 48."
-   ✓ "You're saying X is the number of cars."
+═══════════════════════════════════════════════
+LABEL 2 — GSTUR (Getting Students to Relate)
+═══════════════════════════════════════════════
+Prompting students to react to, agree/disagree with, or compare their
+thinking with a classmate's idea or answer.
 
-4  REVOIC  Revoicing
-   Repeating what a student said but adding on or changing the wording.
-   The teacher paraphrases or reframes a student's idea with elaboration.
-   ✓ "Julia told us she would add two here." (adds attribution + slight elaboration)
-   ✓ "So you're saying the zeros come from multiplying by tens?"
-   ✓ "You're comparing the two methods." (reframes student's action)
+Real examples:
+  • "How do you know he is right?"
+  • "Any disagreements with how Carson set up her partition rectangle?"
+  • "Anyone do it differently?"
+  • "Anyone else have a different response?"
+  • "What did you do differently?"
 
-5  PRSACC  Pressing for Accuracy
-   Prompting students to make a mathematical contribution or use mathematical language.
-   Focuses on correctness, precision, or proper math vocabulary.
-   ✓ "Can you give an example of an ordered pair?"
-   ✓ "Is that the right term?"
-   ✓ "Can you say that using math vocabulary?"
-   ✓ "Are you sure that's correct?"
-   ✓ "Start again." (prompting student to redo for correctness)
-   ✓ "You said what?" (signaling inaccuracy, prompting correction)
+═══════════════════════════════════════════════
+LABEL 3 — RESTAT (Restating)
+═══════════════════════════════════════════════
+Repeating all or part of what a student said, word for word or nearly so.
+Even a single word or number counts if the teacher is echoing a student.
 
-6  PRSREA  Pressing for Reasoning
-   Prompting students to explain, provide evidence, share their thinking behind
-   a decision, or connect ideas or representations.
-   Focuses on WHY or HOW, not just whether the answer is right.
-   ✓ "Why could I argue that the slope should be increasing?"
-   ✓ "Why are you just automatically changing your answer?"
-   ✓ "Talk about what steps you took to get there."
-   ✓ "How did you get that?"
-   ✓ "Can you explain your thinking?"
+Real examples:
+  • "Seven."
+  • "360."
+  • "Yes."
+  • "No."
+  • "Obtuse."
+  • "Two zeros."
+  • "Denominator."
+  • "4 extra zeros to your basic fact."
+  • "Were doing a twodigit number times a twodigit number."
 
-0  NONE  None of the above
-   Use NONE only when the utterance clearly does not fit labels 1–6.
-   NONE includes:
-   - Content explanation or instruction NOT tied to a specific student's idea
-   - Pure logistics / time management ("You have one more minute")
-   - Filler / acknowledgment only ("Okay", "Alright", "I'm sorry")
-   - Task setup describing what students will do ("There's a partitioned rectangle problem...")
-   - Learning objective statements ("Your learning intention is you can multiply...")
-   ✗ Do NOT use NONE for short or vague utterances if they clearly signal
-     a press for accuracy or reasoning.
+═══════════════════════════════════════════════
+LABEL 4 — REVOIC (Revoicing)
+═══════════════════════════════════════════════
+Repeating what a student said but adding on, reframing, or slightly
+changing the wording. Goes beyond mere repetition.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Real examples:
+  • "Youre adding."
+  • "We have two."
+  • "A quarter is half of the half."
+  • "Two dollars leftover."
+  • "No its a different form but the value hasnt changed."
+  • "I heard Emma say we are having two new strategies today."
+
+═══════════════════════════════════════════════
+LABEL 5 — PRSACC (Pressing for Accuracy)
+═══════════════════════════════════════════════
+Prompting students to make a mathematical contribution, use math language,
+or engage with mathematical content. This is the broadest active label.
+Includes: asking for answers, asking what/how many/which, requesting
+explanations, asking students to talk about steps or strategies.
+NOTE: "Talk about your steps" → PRSACC in this dataset.
+
+Real examples:
+  • "4 times 50."
+  • "30 times 7."
+  • "Explain please."
+  • "What about six?"
+  • "How do you know then?"
+  • "How many are in one group?"
+  • "What is this asking you to solve for?"
+  • "Talk about what steps you took to get there."
+  • "Jesse whats different about this problem?"
+  • "Here am I modifying X or the whole function?"
+  • "Where in the real world would someone need to know how to read a decimal?"
+
+═══════════════════════════════════════════════
+LABEL 6 — PRSREA (Pressing for Reasoning)
+═══════════════════════════════════════════════
+Prompting students to explain WHY, justify their reasoning, or connect ideas.
+Key signal: the word "why" or asking for justification/evidence of thinking.
+
+Real examples:
+  • "Why Clayton?"
+  • "Why not 80?"
+  • "Why 48000 and not 4800?"
+  • "Why are you just automatically changing your answer?"
+  • "Why did you add these numbers together?"
+
+═══════════════════════════════════════════════
+LABEL 0 — NONE (None of the above)
+═══════════════════════════════════════════════
+Use ONLY when the utterance clearly does not fit any of labels 1–6.
+NONE is for pure logistics, content delivery, or filler with no
+interactive discourse function toward students.
+
+Real examples of genuine NONE:
+  • "Okay so can you guys see?" (checking visibility, not discourse)
+  • "Get started on mental math." (task transition)
+  • "Making sure that you can see how your answers should be the same."
+  • "Youre mental math youre just doing quick extended facts."
+  • "You have about another minute and a half."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DECISION GUIDE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Step 1. Does the teacher orient students to LISTEN TO / REACT TO a classmate?
-        → Yes, listen/attend     → KPTG
-        → Yes, react/engage      → GSTUR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Does it start with "Why" or ask for justification?          → PRSREA
+2. Does it ask for math content, steps, or explanation?        → PRSACC
+3. Does it orient students to a classmate's idea?              → GSTUR
+4. Is the teacher echoing a student's word/phrase exactly?     → RESTAT
+5. Is the teacher reframing/elaborating a student's idea?      → REVOIC
+6. Does it direct attention, call on students, check in?       → KPTG
+7. None of the above (pure logistics/filler/content delivery)  → NONE
 
-Step 2. Does the teacher repeat a student's words?
-        → Exact repeat           → RESTAT
-        → Paraphrase/elaborate   → REVOIC
-
-Step 3. Does the teacher press a student?
-        → For correctness/vocab  → PRSACC
-        → For explanation/why    → PRSREA
-
-Step 4. None of the above       → NONE
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IMPORTANT NOTES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Short utterances CAN be PRSACC or PRSREA if the intent is clear from context.
-- "Start again", "You said what?" → PRSACC (pressing for corrected/accurate response)
-- "Talk about your steps", "Why did you do that?" → PRSREA
-- Describing task instructions to the whole class (not referencing a student's idea) → NONE
-- KPTG does NOT require a question; a directive like "Go check with a partner" qualifies.
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
 
     @classmethod
@@ -186,17 +223,18 @@ Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
             f"{context_block}"
             f"[Target Utterance]\n"
             f"  [T]: {utterance.sentence or '(no text)'}\n\n"
-            f"Classify using the decision guide. Output JSON only."
+            "Use the decision guide. Prefer labels 1-6 over NONE when uncertain.\n"
+            "Output JSON only."
         )
 
 
 # ──────────────────────────────────────────────
-# 4. LLM 백엔드 (Anthropic / Gemini)
+# 4. LLM 백엔드
 # ──────────────────────────────────────────────
 
 class _BaseBackend:
     RETRY_LIMIT = 5
-    RETRY_DELAY = 3   # 병렬 호출 시 503 대비 적당한 대기
+    RETRY_DELAY = 3
 
     def call(self, system: str, user: str) -> str:
         raise NotImplementedError
@@ -210,9 +248,9 @@ class _BaseBackend:
             except (json.JSONDecodeError, KeyError, ValueError):
                 if attempt < self.RETRY_LIMIT - 1:
                     time.sleep(self.RETRY_DELAY)
-            except Exception:          # 503 등 네트워크 에러
+            except Exception:
                 if attempt < self.RETRY_LIMIT - 1:
-                    time.sleep(self.RETRY_DELAY * (attempt + 1))  # 지수 대기
+                    time.sleep(self.RETRY_DELAY * (attempt + 1))
         return 0, 0.0
 
 
@@ -252,15 +290,7 @@ class _GeminiBackend(_BaseBackend):
 
 
 class LLMClassifier:
-    """
-    교사 발화를 분류하는 클래스. Anthropic과 Gemini 백엔드 지원.
-
-    Parameters
-    ----------
-    provider : "anthropic" | "gemini"
-    api_key  : API 키. None이면 환경변수 자동 참조.
-    model    : 사용할 모델명. None이면 provider 기본값 사용.
-    """
+    """교사 발화 분류기. Anthropic / Gemini 백엔드 지원."""
 
     DEFAULT_MODELS = {
         "anthropic": "claude-haiku-4-5-20251001",
@@ -302,7 +332,7 @@ class LLMClassifier:
 
 
 # ──────────────────────────────────────────────
-# 5. 데이터 로더 (교사 발화만)
+# 5. 데이터 로더
 # ──────────────────────────────────────────────
 
 class DataLoader:
@@ -353,7 +383,6 @@ class DataLoader:
 # ──────────────────────────────────────────────
 
 class Evaluator:
-    """분류 결과 평가, 리포트 출력, 혼동행렬 시각화."""
 
     LABELS = ["NONE", "KPTG", "GSTUR", "RESTAT", "REVOIC", "PRSACC", "PRSREA"]
 
@@ -362,8 +391,7 @@ class Evaluator:
         subset = [u for u in utterances if u.predicted_tag is not None and u.true_tag is not None]
         if not subset:
             return 0.0
-        correct = sum(1 for u in subset if u.predicted_tag == u.true_tag)
-        return correct / len(subset)
+        return sum(1 for u in subset if u.predicted_tag == u.true_tag) / len(subset)
 
     @staticmethod
     def print_report(utterances: list[Utterance]) -> None:
@@ -371,23 +399,20 @@ class Evaluator:
         if not subset:
             print("예측 결과가 없습니다.")
             return
-
         acc = Evaluator.accuracy(utterances)
         print(f"\n{'='*55}")
         print(f"[Teacher Talk Moves]  n={len(subset)},  Accuracy={acc:.1%}")
         print(f"{'='*55}")
         print(f"{'IDX':>5} {'Turn':>5} {'Pred':>8} {'True':>8}  Sentence[:50]")
         print("-"*70)
-
         for u in subset:
             pred_name = TalkMoveLabels.tag_to_name(u.predicted_tag)
             true_name = TalkMoveLabels.tag_to_name(u.true_tag)
-            mark = "✓" if u.predicted_tag == u.true_tag else "✗"
+            mark = "✓" if u.predicted_tag == u.true_tag else ("✗" if u.true_tag is not None else " ")
             print(f"{u.index:>5} {u.turn:>5} {pred_name:>8} {true_name:>8}  {mark} {(u.sentence or '')[:50]}")
 
     @staticmethod
     def print_distribution(utterances: list[Utterance]) -> None:
-        """True vs Predicted 레이블 분포 출력."""
         from collections import Counter
         true_counts = Counter(u.true_tag for u in utterances if u.true_tag is not None)
         pred_counts = Counter(u.predicted_tag for u in utterances if u.predicted_tag is not None)
@@ -403,39 +428,58 @@ class Evaluator:
             print(f"  {tag}    {name:<8} {t:>6} {p:>6}  {sign}{diff:>5}")
 
     @staticmethod
+    def print_per_label_metrics(utterances: list[Utterance]) -> None:
+        import numpy as np
+        labels = Evaluator.LABELS
+        n = len(labels)
+        label_to_idx = {l: i for i, l in enumerate(labels)}
+        matrix = np.zeros((n, n), dtype=int)
+
+        valid = [u for u in utterances if u.predicted_tag is not None and u.true_tag is not None]
+        for u in valid:
+            t = label_to_idx.get(TalkMoveLabels.tag_to_name(u.true_tag), 0)
+            p = label_to_idx.get(TalkMoveLabels.tag_to_name(u.predicted_tag), 0)
+            matrix[t][p] += 1
+
+        print(f"\n{'Label':<8} {'Total':>6} {'Recall':>8} {'Precision':>10} {'F1':>7}")
+        print("-" * 45)
+        for i, label in enumerate(labels):
+            total = matrix[i].sum()
+            correct = matrix[i][i]
+            pred_total = matrix[:, i].sum()
+            recall = correct / total if total > 0 else 0
+            prec   = correct / pred_total if pred_total > 0 else 0
+            f1     = 2 * prec * recall / (prec + recall) if (prec + recall) > 0 else 0
+            print(f"{label:<8} {total:>6} {recall:>7.1%} {prec:>9.1%} {f1:>7.3f}")
+
+    @staticmethod
     def plot_confusion_matrix(utterances: list[Utterance]) -> None:
-        """혼동행렬을 matplotlib으로 시각화."""
         try:
             import matplotlib.pyplot as plt
             import numpy as np
         except ImportError:
-            print("matplotlib / numpy가 필요합니다: pip install matplotlib numpy")
+            print("pip install matplotlib numpy")
             return
 
         labels = Evaluator.LABELS
         n = len(labels)
         label_to_idx = {l: i for i, l in enumerate(labels)}
-
         matrix = np.zeros((n, n), dtype=int)
-        valid = [u for u in utterances if u.predicted_tag is not None and u.true_tag is not None]
 
+        valid = [u for u in utterances if u.predicted_tag is not None and u.true_tag is not None]
         for u in valid:
-            true_name = TalkMoveLabels.tag_to_name(u.true_tag)
-            pred_name = TalkMoveLabels.tag_to_name(u.predicted_tag)
-            t_idx = label_to_idx.get(true_name, 0)
-            p_idx = label_to_idx.get(pred_name, 0)
-            matrix[t_idx][p_idx] += 1
+            t = label_to_idx.get(TalkMoveLabels.tag_to_name(u.true_tag), 0)
+            p = label_to_idx.get(TalkMoveLabels.tag_to_name(u.predicted_tag), 0)
+            matrix[t][p] += 1
 
         used = [i for i in range(n) if matrix[i].sum() > 0 or matrix[:, i].sum() > 0]
-        matrix = matrix[np.ix_(used, used)]
+        m = matrix[np.ix_(used, used)]
         tick_labels = [labels[i] for i in used]
 
         acc = Evaluator.accuracy(utterances)
         fig, ax = plt.subplots(figsize=(8, 6))
-
-        im = ax.imshow(matrix, interpolation="nearest", cmap="Blues")
+        im = ax.imshow(m, interpolation="nearest", cmap="Blues")
         plt.colorbar(im, ax=ax)
-
         ax.set_xticks(range(len(tick_labels)))
         ax.set_yticks(range(len(tick_labels)))
         ax.set_xticklabels(tick_labels, rotation=45, ha="right", fontsize=11)
@@ -446,16 +490,13 @@ class Evaluator:
             f"Talk Move Confusion Matrix\nn={len(valid)},  Accuracy={acc:.1%}",
             fontsize=13, fontweight="bold"
         )
-
-        thresh = matrix.max() / 2.0
+        thresh = m.max() / 2.0
         for i in range(len(tick_labels)):
             for j in range(len(tick_labels)):
-                val = matrix[i, j]
+                val = m[i, j]
                 if val > 0:
-                    ax.text(j, i, str(val),
-                            ha="center", va="center", fontsize=12,
-                            color="white" if val > thresh else "black")
-
+                    ax.text(j, i, str(val), ha="center", va="center",
+                            fontsize=12, color="white" if val > thresh else "black")
         plt.tight_layout()
         plt.savefig("confusion_matrix.png", dpi=150, bbox_inches="tight")
         plt.show()
@@ -463,21 +504,18 @@ class Evaluator:
 
     @staticmethod
     def to_dataframe(utterances: list[Utterance]) -> pd.DataFrame:
-        records = []
-        for u in utterances:
-            records.append({
-                "index": u.index,
-                "turn": u.turn,
-                "speaker": u.speaker,
-                "sentence": u.sentence,
-                "true_tag": u.true_tag,
-                "true_label": TalkMoveLabels.tag_to_name(u.true_tag),
-                "predicted_tag": u.predicted_tag,
-                "predicted_label": TalkMoveLabels.tag_to_name(u.predicted_tag),
-                "confidence": u.confidence,
-                "correct": u.predicted_tag == u.true_tag if u.true_tag is not None else None,
-            })
-        return pd.DataFrame(records)
+        return pd.DataFrame([{
+            "index": u.index,
+            "turn": u.turn,
+            "speaker": u.speaker,
+            "sentence": u.sentence,
+            "true_tag": u.true_tag,
+            "true_label": TalkMoveLabels.tag_to_name(u.true_tag),
+            "predicted_tag": u.predicted_tag,
+            "predicted_label": TalkMoveLabels.tag_to_name(u.predicted_tag),
+            "confidence": u.confidence,
+            "correct": u.predicted_tag == u.true_tag if u.true_tag is not None else None,
+        } for u in utterances])
 
 
 # ──────────────────────────────────────────────
@@ -485,7 +523,6 @@ class Evaluator:
 # ──────────────────────────────────────────────
 
 class ClassificationPipeline:
-    """DataLoader → LLMClassifier → Evaluator 흐름을 조율하는 클래스."""
 
     def __init__(
         self,
@@ -531,18 +568,15 @@ class ClassificationPipeline:
                 utterances[i].predicted_tag = tag
                 utterances[i].confidence = conf
                 completed += 1
-
                 if verbose:
                     utt = utterances[i]
                     pred_name = TalkMoveLabels.tag_to_name(tag)
                     mark = "✓" if tag == utt.true_tag else ("✗" if utt.true_tag is not None else " ")
-                    print(
-                        f"[{completed:>4}/{n}] {pred_name:>8}({conf:.2f}) "
-                        f"{mark}  {(utt.sentence or "")[:45]}"
-                    )
+                    print(f"[{completed:>4}/{n}] {pred_name:>8}({conf:.2f}) {mark}  {(utt.sentence or '')[:45]}")
 
         if verbose:
             self.evaluator.print_distribution(utterances)
+            self.evaluator.print_per_label_metrics(utterances)
             self.evaluator.print_report(utterances)
 
         return utterances

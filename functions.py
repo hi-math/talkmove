@@ -75,30 +75,44 @@ When uncertain between NONE and another label, choose the other label.
 ═══════════════════════════════════════════════
 LABEL 1 — KPTG (Keeping Everyone Together)
 ═══════════════════════════════════════════════
-Prompting students to be active listeners, orienting students to each other,
-or directing the class to attend to a shared idea or activity.
-Applies broadly: directing attention, calling on students, asking the class
-to repeat/read/say something, checking understanding, or managing participation.
+Directing student attention, calling on a specific student by name,
+checking shared understanding, managing class participation, or keeping
+the whole class engaged together.
 
-Real examples from this dataset:
-  • "Go"
-  • "Class"
-  • "Do you see it?"
-  • "Makes sense?"
-  • "All right so any other questions?"
-  • "How are you feeling?"
-  • "Please go check your homework with a partner."
-  • "Ben will you read that to us?"
-  • "Everybody say rotation."
-  • "Hey so you think its gonna get wider?"
-  • "Youre comparing."
-  • "You said what?"
+KPTG sub-types (all are KPTG):
+  A. Calling a student by name alone or with a minimal prompt
+     • "Clayton"  • "Chandler"  • "Joel"  • "David"  • "Josh"
+     • "Carson you want to bring your book up here"
+  B. Confirmation/tag questions directed at the whole class
+     • "A twodigit times a onedigit right"
+     • "17 isnt a multiple of 10 is it"
+     • "2400 is not very close to 240 is it"
+     • "It helps to talk yourself through it doesnt it"
+     • "So your answer will change a little bit wont it"
+     • "Did you forget to add 2 zeros"
+     • "Do you revise your thinking"
+  C. Soliciting class participation / polling
+     • "All right who did pink problems"
+     • "Who got all the way to doing it partial product way"
+     • "These hands went Matt feeling confident"
+     • "Every single person except for You missed that"
+     • "Thumbs up when you have the answer"
+  D. Short directives / attention calls
+     • "Go"  • "Please go check your homework with a partner"
+  E. Referencing a student's idea to re-engage the class
+     • "Youre comparing"  • "You said what"
+     • "It was following a pattern and then it messed you up"
+     • "So you did it right underneath the way that they know"
+
+NOT KPTG → NONE: pure logistics not aimed at discourse engagement
+  ✗ "You guys should go ask someone else" → NONE (redirecting, not engaging)
+  ✗ "I want you to take your whiteboard and swap with your partner" → NONE (task setup)
 
 ═══════════════════════════════════════════════
 LABEL 2 — GSTUR (Getting Students to Relate)
 ═══════════════════════════════════════════════
-Prompting students to react to, agree/disagree with, or compare their
-thinking with a classmate's idea or answer.
+Asking a student to engage with, compare to, or evaluate a classmate's idea.
+Key signal: reference to what another student said/did + request to react.
 
 Real examples:
   • "How do you know he is right?"
@@ -106,97 +120,104 @@ Real examples:
   • "Anyone do it differently?"
   • "Anyone else have a different response?"
   • "What did you do differently?"
+  • "Any disagreements on how Matt or Dakota solved the problem?"
+  • "Dakota do you have a different answer or did you just do it the same way?"
+  • "What did you notice that Faith did while she was revising?"
+  • "But as she was working it did she actually do it right?"
+
+NOT GSTUR → KPTG: "Jesse" alone (single student name) = calling on = KPTG
 
 ═══════════════════════════════════════════════
 LABEL 3 — RESTAT (Restating)
 ═══════════════════════════════════════════════
-Repeating all or part of what a student said, word for word or nearly so.
-Even a single word or number counts if the teacher is echoing a student.
+Teacher echoes a student's exact words back (even one word/number counts).
+Key signal: teacher is repeating what a student just said.
 
 Real examples:
-  • "Seven."
-  • "360."
-  • "Yes."
-  • "No."
-  • "Obtuse."
-  • "Two zeros."
-  • "Denominator."
-  • "4 extra zeros to your basic fact."
-  • "Were doing a twodigit number times a twodigit number."
+  • "Seven"  • "Two zeros"  • "Multiples"  • "Times 20 thank you"
+  • "4 extra zeros to your basic fact"
+  • "Were doing a twodigit number times a twodigit number"
+
+NOT RESTAT → NONE:
+  ✗ "Its multiplication" (teacher stating, not echoing a student) → NONE
 
 ═══════════════════════════════════════════════
 LABEL 4 — REVOIC (Revoicing)
 ═══════════════════════════════════════════════
-Repeating what a student said but adding on, reframing, or slightly
-changing the wording. Goes beyond mere repetition.
+Teacher paraphrases or elaborates a student's idea with a slight shift.
+Key signal: teacher re-expresses student thinking with added framing.
 
 Real examples:
-  • "Youre adding."
-  • "We have two."
-  • "A quarter is half of the half."
-  • "Two dollars leftover."
-  • "No its a different form but the value hasnt changed."
-  • "I heard Emma say we are having two new strategies today."
+  • "Youre adding"  • "Also 3"  • "You counted by 5"
+  • "300 sir youre correct"  • "Just 28 because there are no extra zeros"
+  • "When you started working it the second time you realized..."
+
+NOT REVOIC → NONE (teacher narrating their own observation, not a student's idea):
+  ✗ "I heard you say 56 and thinking through" → NONE (teacher thinking aloud)
+  ✗ "I heard that 24000" → NONE (teacher noting what they overheard, no elaboration)
 
 ═══════════════════════════════════════════════
 LABEL 5 — PRSACC (Pressing for Accuracy)
 ═══════════════════════════════════════════════
-Prompting students to make a mathematical contribution, use math language,
-or engage with mathematical content. This is the broadest active label.
-Includes: asking for answers, asking what/how many/which, requesting
-explanations, asking students to talk about steps or strategies.
-NOTE: "Talk about your steps" → PRSACC in this dataset.
+Eliciting a math answer, fact, term, calculation, or step from a student.
+This is the broadest active label. Applies whenever teacher asks for any
+mathematical content — even a single expression or formula.
 
-Real examples:
-  • "4 times 50."
-  • "30 times 7."
-  • "Explain please."
-  • "What about six?"
-  • "How do you know then?"
-  • "How many are in one group?"
-  • "What is this asking you to solve for?"
-  • "Talk about what steps you took to get there."
-  • "Jesse whats different about this problem?"
-  • "Here am I modifying X or the whole function?"
-  • "Where in the real world would someone need to know how to read a decimal?"
+Real examples (NOTE: bare math expressions count as PRSACC):
+  • "4 times 50"  • "30 times 7"  • "70 times 8"  • "20 times 40"
+  • "Basic facts with what"  • "Talk about what steps you took to get there"
+  • "Anyone feel pretty confident about how they did it"
+  • "I hear 81000 Whos correct"
+  • "How many extra zeros are in the problem"
+  • "Jesse whats different about this problem"
+  • "Explain please"
+
+NOT PRSACC → NONE:
+  ✗ "Basic fact in there" (teacher statement, not a question) → NONE
+  ✗ "I have no idea what you just said" (teacher reaction) → NONE
 
 ═══════════════════════════════════════════════
 LABEL 6 — PRSREA (Pressing for Reasoning)
 ═══════════════════════════════════════════════
-Prompting students to explain WHY, justify their reasoning, or connect ideas.
-Key signal: the word "why" or asking for justification/evidence of thinking.
+Asking a student to explain WHY or justify their thinking.
+Key signal: contains "why" or equivalent reasoning request.
+Even single-word "Why" counts as PRSREA.
 
 Real examples:
-  • "Why Clayton?"
-  • "Why not 80?"
-  • "Why 48000 and not 4800?"
-  • "Why are you just automatically changing your answer?"
-  • "Why did you add these numbers together?"
+  • "Why"  • "Why Clayton"  • "Why not 80"
+  • "Why 48000 and not 4800"  • "Why Matt why not"
+  • "Why is it not 81000"
+  • "Why are you just automatically changing your answer"
 
 ═══════════════════════════════════════════════
 LABEL 0 — NONE (None of the above)
 ═══════════════════════════════════════════════
-Use ONLY when the utterance clearly does not fit any of labels 1–6.
-NONE is for pure logistics, content delivery, or filler with no
-interactive discourse function toward students.
+Pure content delivery, logistics, transitions, or filler with no
+interactive discourse function aimed at engaging students.
 
 Real examples of genuine NONE:
-  • "Okay so can you guys see?" (checking visibility, not discourse)
-  • "Get started on mental math." (task transition)
-  • "Making sure that you can see how your answers should be the same."
-  • "Youre mental math youre just doing quick extended facts."
-  • "You have about another minute and a half."
+  • "Get started on mental math"  • "You have about another minute and a half"
+  • "Making sure that you can see how your answers should be the same"
+  • "Youre mental math youre just doing quick extended facts"
+  • "I want you to take your whiteboard and swap with your partner" (task setup)
+  • "You guys should go ask someone else" (redirect, not engagement)
+  • "I heard you say 56 and thinking through" (teacher thinking aloud)
+  • "I heard that 24000" (narrating observation without elaborating)
+  • "Basic fact in there" (statement, not a question or prompt)
+  • "Its multiplication" (teacher labeling, not echoing a student)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DECISION GUIDE
+DECISION GUIDE (in order)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Does it start with "Why" or ask for justification?          → PRSREA
-2. Does it ask for math content, steps, or explanation?        → PRSACC
-3. Does it orient students to a classmate's idea?              → GSTUR
-4. Is the teacher echoing a student's word/phrase exactly?     → RESTAT
-5. Is the teacher reframing/elaborating a student's idea?      → REVOIC
-6. Does it direct attention, call on students, check in?       → KPTG
-7. None of the above (pure logistics/filler/content delivery)  → NONE
+1. Contains "why" or justification request?                    → PRSREA
+2. Asks for math content, answer, formula, or steps?           → PRSACC
+   (bare math expression like "4 times 50" = PRSACC)
+3. References a classmate's idea and asks student to react?   → GSTUR
+4. Teacher echoing student's exact words?                     → RESTAT
+5. Teacher reframing/elaborating student's idea?              → REVOIC
+6. Student name alone / tag question / participation poll
+   / attention direction / short directive?                    → KPTG
+7. Pure logistics / content delivery / teacher statement?      → NONE
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Respond ONLY with JSON: {"tag": <integer 0-6>, "confidence": <float 0.0-1.0>}"""
